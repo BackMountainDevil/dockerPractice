@@ -56,6 +56,8 @@ OK
 
 # python flask
 
+提供缓存查询、缓存同步、数据库插入等用户功能
+
 ```bash
 pip install -r requirement.txt
 flask run   # 浏览 http://127.0.0.1:5000/

@@ -1,0 +1,75 @@
+<head>
+    <!-- 从 cdn 引入 jquery -->
+    <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+</head>
+
+
+<div>
+    <div>
+        <label for="key">key</label>
+        <input type="text" name="key" id="key"><br>
+
+        <label for="value">value</label>
+        <input type="text" name="value" id="value"><br>
+
+        <button onclick="insert()">更新数据库</button>
+    </div>
+
+
+    <div>
+        <label for="ckey">key</label>
+        <input type="text" name="ckey" id="ckey"><br>
+        <label>value:</label>
+        <label id="cvalue"></label><br>
+        <button onclick="get()">查询缓存</button>
+    </div>
+
+
+    <button onclick="sync()">同步</button>
+</div>
+
+
+<script>
+    function insert() {
+        // 向后端提供 key value ，用来存储到数据库中
+        console.log("i", document.getElementById("key").value);
+        const Url = "{{ url_for('api_db_insert') }}";
+        const data = { key: document.getElementById("key").value, value: document.getElementById("value").value };
+
+        $.post(Url, data, function (data, status) {
+            console.log(data, status);
+        });
+    };
+
+    function get() {
+        // 向后端请求查询缓存
+        ckey = document.getElementById("ckey").value;
+        console.log("g", ckey);
+
+        const Url = "{{ url_for('api_rget') }}";
+        const data = { key: ckey };
+
+        $.post(Url, data, function (data, status) {
+            console.log(data, status, data[ckey]);
+            value = data[ckey];
+            if (value === null) {
+                document.getElementById("cvalue").innerHTML = "Error:  value not found";
+            } else {
+                document.getElementById("cvalue").innerHTML = value;
+            }
+        });
+
+    };
+
+    function sync() {
+        // 向后端提供 key value ，用来存储到缓存中
+        console.log("s");
+        const Url = "{{ url_for('api_rset') }}";
+        const data = { key: document.getElementById("key").value, value: document.getElementById("value").value };
+
+        $.post(Url, data, function (data, status) {
+            console.log(data, status);
+
+        });
+    };
+</script>

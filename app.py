@@ -1,5 +1,5 @@
 import redis  # 导入redis 模块
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy  # 数据库 ORM 包
 
 
@@ -9,6 +9,8 @@ app.config[
 ] = "mysql+pymysql://root:root@:3306/demo?charset=utf8"  # 数据库配置
 
 db = SQLAlchemy(app)
+pool = redis.ConnectionPool(host="localhost", port=6379, decode_responses=True)
+RDS = redis.Redis(host="localhost", port=6379, decode_responses=True)
 
 
 class Table(db.Model):  # 数据库 表模型
@@ -55,4 +57,51 @@ def testRM():
 
 @app.route("/", methods=["GET"])
 def index():
+    """
+    返回视图给用户进行操作
+    """
     return render_template("index.html")
+
+
+@app.route("/api/redis/get", methods=["POST"])
+def api_rget():
+    """
+    根据提供的 key 从 redis 中查询 value，为查询到返回空
+    """
+    key = request.values.get("key")
+    value = RDS.get(key)
+    print("DEBUG ckey: %s\tcvalue: %s" % (key, value))
+    return {key: value}
+
+
+@app.route("/api/db/insert", methods=["POST"])
+def api_db_insert():
+    """
+    把提供的 key value 存储到数据库中
+    """
+    key = request.values.get("key")
+    value = request.values.get("value")
+    print("DEBUG key: %s\tvalue: %s" % (key, value))
+
+    try:
+        kv = Table()
+        kv.key = key
+        kv.value = value
+        db.session.add(kv)
+        db.session.commit()
+        return {"msg": "insert ok"}
+    except Exception as ex:
+        db.session.rollback()
+        return {"error": repr(ex)}
+
+
+@app.route("/api/redis/set", methods=["POST"])
+def api_rset():
+    """
+    把提供的 key value 存储到 redis 中
+    """
+    key = request.values.get("key")
+    value = request.values.get("value")
+    print("DEBUG key: %s\tvalue: %s" % (key, value))
+    RDS.set(key, value)
+    return {"msg": "sync to cache ok"}
