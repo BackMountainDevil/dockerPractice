@@ -41,6 +41,19 @@ INSERT INTO demo.`table` (`key`, `value`) VALUES('name', 'nobody');
 INSERT INTO demo.`table` (`key`, `value`) VALUES('age', '18');
 ```
 
+# 缓存 redis
+
+```bash
+docker pull redis   # 拉取镜像
+docker run -d --network dn --name rds -p 6379:6379 redis    # 运行 redis,加入 dn 网络，暴露端口
+docker exec -it rds redis-cli   # 进入 redis 容器，运行 redis-cli
+127.0.0.1:6379> set name mifen
+OK
+127.0.0.1:6379> get name
+"mifen"
+127.0.0.1:6379> quit
+```
+
 # python flask
 
 ```bash
