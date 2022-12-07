@@ -59,6 +59,14 @@ OK
 提供缓存查询、缓存同步、数据库插入等用户功能
 
 ```bash
+# docker 容器方法
+docker network inspect dn	# 获取 redis mariadb 的 ip 地址，修改 app 中对应的 ip 地址
+docker build . -t flask:v3	# 创建隔离镜像，安装依赖，标签为flask:v3
+docker run -d --network dn -p 5000:5000 --name web -v ${PWD}:/usr/src/app flask:v3	# 启动程序，暴露端口 5000，挂载本地目录到容器中
+
+# 常规方法，在 python 3.10.8 测试通过
+python -m venv env
+source env/bin/activate
 pip install -r requirement.txt
 flask run   # 浏览 http://127.0.0.1:5000/
 # Ctrl + C 退出flask
