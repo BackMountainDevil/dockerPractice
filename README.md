@@ -93,6 +93,23 @@ gunicorn -w 4 -b 127.0.0.1:5000 app:app   # 浏览 http://127.0.0.1:5000/
 # Ctrl + C 退出flask
 ```
 
+# nginx
+
+代理Web服务器，监听外部80端口的请求，然后将请求转发给Gunicorn处理。
+
+修改完配置文件文件之后使用Nginx检查一下配置文件语法正确性`sudo nginx -t`，如果显示都是ok、successful则表示配置文件中没有语法错误。然后重启Nginx使其配置生效  
+
+```bash
+docker pull nginx
+docker run --name ngx --network dn -v ${PWD}/nginx.conf:/etc/nginx/nginx.conf:ro -d -p 80:80 nginx
+docker run --name ngx --network dn -d -p 80:80 nginx
+```
+
+nginx 配置
+
+- `proxy_pass`值的是转发的地址，根据Gunicorn设置进行修改。  
+- `location /static`中的路径需要修改为项目静态文件夹中的静态文件路径。
+
 # References
 
 [mariadb  dockerhub](https://hub.docker.com/_/mariadb)
