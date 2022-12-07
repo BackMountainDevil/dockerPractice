@@ -6,7 +6,7 @@ from flask_sqlalchemy import SQLAlchemy  # 数据库 ORM 包
 app = Flask(__name__)
 app.config[
     "SQLALCHEMY_DATABASE_URI"
-] = "mysql+pymysql://root:root@:3306/demo?charset=utf8"  # 数据库配置
+] = "mysql+pymysql://root:root@localhost:3306/demo?charset=utf8"  # 数据库配置
 
 db = SQLAlchemy(app)
 pool = redis.ConnectionPool(host="localhost", port=6379, decode_responses=True)
