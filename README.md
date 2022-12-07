@@ -58,10 +58,31 @@ OK
 
 提供缓存查询、缓存同步、数据库插入等用户功能
 
+部署模式时需要在env设置其模式为产品模式，`FLASK_DEBUG`修改为 False ，修改完结果如下 
+
+```bash
+FLASK_DEBUG=False
+FLASK_ENV = production
+FLASK_CONFIG = production
+```
+
+Flask默认内置的Web服务器能力较弱，使用能力更强的Gunicorn来配合生产环境中的强度。
+
+```bash
+gunicorn -w 4 -b 127.0.0.1:5000 app:app
+```
+
+`-w`参数表示进程数目，上面表示启动4个进程服务。  
+`-b`参数表示绑定的IP及端口。
+
+## 启动方法
+
+方法二选一，这里是容器练习，选容器办法，为了本地调试，常规方法也写了
+
 ```bash
 # docker 容器方法
 docker network inspect dn	# 获取 redis mariadb 的 ip 地址，修改 app 中对应的 ip 地址
-docker build . -t flask:v3	# 创建隔离镜像，安装依赖，标签为flask:v3
+docker build . -t flask:v4	# 创建隔离镜像，安装依赖，标签为flask:v4
 docker run -d --network dn -p 5000:5000 --name web -v ${PWD}:/usr/src/app flask:v4	# 启动程序，暴露端口 5000，挂载本地目录到容器中
 
 # 常规方法，在 python 3.10.8 测试通过
