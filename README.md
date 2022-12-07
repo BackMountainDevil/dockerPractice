@@ -102,7 +102,6 @@ gunicorn -w 4 -b 127.0.0.1:5000 app:app   # 浏览 http://127.0.0.1:5000/
 ```bash
 docker pull nginx
 docker run --name ngx --network dn -v ${PWD}/nginx.conf:/etc/nginx/nginx.conf:ro -d -p 80:80 nginx
-docker run --name ngx --network dn -d -p 80:80 nginx
 ```
 
 nginx 配置
@@ -110,7 +109,44 @@ nginx 配置
 - `proxy_pass`值的是转发的地址，根据Gunicorn设置进行修改。  
 - `location /static`中的路径需要修改为项目静态文件夹中的静态文件路径。
 
+# 四合一
+
+1. 获取每个容器的 ip ：docker network inspect dn
+2. 修改 app.py 中 redis、mariadb 的地址
+3. 修改 nginx.conf 中 proxy_pass 的 ip 为 gunicorn 的地址
+4. 除了 nginx 需要暴露端口供外部访问，其它三个容器都不需要外部访问接口，只需要在同一网络中相互访问即可
+
+```bash
+docker rm ngx web rds db -f	# 强制删除这四个容器
+
+# 下面进行重建。不一样的是少了端口设置；多了一个 --restart=always，意思是挂机了会尝试重启
+docker run -d --network dn  --name db --env MARIADB_USER=admin --env MARIADB_PASSWORD=admin --env MARIADB_ROOT_PASSWORD=root --restart=always mariadb
+docker exec -it db mariadb  -uroot -proot
+MariaDB [(none)]> create database demo;
+MariaDB [(none)]> use demo;
+MariaDB [demo]> CREATE TABLE demo.`table` (
+    -> `key` varchar(100) ,
+    -> `value` varchar(100) 
+    -> );
+MariaDB [demo]> \q
+
+docker run -d --network dn --name rds --restart=always redis
+
+docker network inspect dn
+# 修改 app.py
+docker run -d --network dn --name web -v ${PWD}:/usr/src/app --restart=always flask:v4
+
+docker network inspect dn
+# 修改 nginx.conf
+docker run --name ngx --network dn -v ${PWD}/nginx.conf:/etc/nginx/nginx.conf:ro -d -p 80:80 --restart=always nginx
+```
+
+这是在单机上部署的案例，现在只能访问到 http://127.0.0.1/，数据库、redis、guncorn 都与用户隔离了。
+
 # References
 
 [mariadb  dockerhub](https://hub.docker.com/_/mariadb)
 
+[nginx  dockerhub](https://hub.docker.com/_/nginx/)
+
+[docker 的入门笔记](https://backmountaindevil.github.io/#/code/app/docker)
