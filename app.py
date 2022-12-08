@@ -6,11 +6,11 @@ from flask_sqlalchemy import SQLAlchemy  # 数据库 ORM 包
 app = Flask(__name__)
 app.config[
     "SQLALCHEMY_DATABASE_URI"
-] = "mysql+pymysql://root:root@localhost:3306/demo?charset=utf8"  # 数据库配置
+] = "mysql+pymysql://root:root@db:3306/demo?charset=utf8"  # 数据库配置
 
 db = SQLAlchemy(app)
-pool = redis.ConnectionPool(host="localhost", port=6379, decode_responses=True)
-RDS = redis.Redis(host="localhost", port=6379, decode_responses=True)
+pool = redis.ConnectionPool(host="rds", port=6379, decode_responses=True)
+RDS = redis.Redis(host="rds", port=6379, decode_responses=True)
 
 
 class Table(db.Model):  # 数据库 表模型
@@ -34,10 +34,8 @@ def testRM():
     """
 
     try:
-        pool = redis.ConnectionPool(host="localhost", port=6379, decode_responses=True)
-        r = redis.Redis(host="localhost", port=6379, decode_responses=True)
-        r.set("name", "runoob")  # 设置 name 对应的值
-        print("DEBUG. you should see 'runoob': ", r.get("name"))  # 取出键 name 对应的值
+        RDS.set("name", "runoob")  # 设置 name 对应的值
+        print("DEBUG. you should see 'runoob': ", RDS.get("name"))  # 取出键 name 对应的值
 
         kv = Table()  # 插入数据库
         kv.key = "flask"

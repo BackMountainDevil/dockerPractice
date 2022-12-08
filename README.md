@@ -91,8 +91,7 @@ gunicorn -w 4 -b 127.0.0.1:5000 app:app
 方法二选一，这里是容器练习，选容器办法，为了本地调试，常规方法也写了
 
 ```bash
-# docker 容器方法
-docker network inspect dn	# 获取 redis mariadb 的 ip 地址，修改 app 中对应的 ip 地址
+# docker 容器方法，数据库、缓存的 host 在 docker 网络 中可以通过容器名称直接访问
 docker build . -t flask:v4	# 创建隔离镜像，安装依赖，标签为flask:v4
 docker run -d --network dn -p 5000:5000 --name web -v ${PWD}:/usr/src/app flask:v4	# 启动程序，暴露端口 5000，挂载本地目录到容器中
 
@@ -100,6 +99,7 @@ docker run -d --network dn -p 5000:5000 --name web -v ${PWD}:/usr/src/app flask:
 python -m venv env
 source env/bin/activate
 pip install -r requirement.txt
+docker network inspect dn	# 获取 redis mariadb 的 ip 地址，修改 app 中对应的 ip 地址
 gunicorn -w 4 -b 127.0.0.1:5000 app:app   # 浏览 http://127.0.0.1:5000/
 # Ctrl + C 退出flask
 ```
