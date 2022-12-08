@@ -117,15 +117,12 @@ docker run --name ngx --network dn -v ${PWD}/nginx.conf:/etc/nginx/nginx.conf:ro
 
 nginx 配置
 
-- `proxy_pass`值的是转发的地址，根据Gunicorn设置进行修改。  
+- `proxy_pass`值的是转发的地址，根据Gunicorn设置进行修改。 
 - `location /static`中的路径需要修改为项目静态文件夹中的静态文件路径。
 
 # 四合一
 
-1. 获取每个容器的 ip ：docker network inspect dn
-2. 修改 app.py 中 redis、mariadb 的地址
-3. 修改 nginx.conf 中 proxy_pass 的 ip 为 gunicorn 的地址
-4. 除了 nginx 需要暴露端口供外部访问，其它三个容器都不需要外部访问接口，只需要在同一网络中相互访问即可
+除了 nginx 需要暴露端口供外部访问，其它三个容器都不需要外部访问接口，只需要在同一网络中相互访问即可
 
 ```bash
 docker rm ngx web rds db -f	# 强制删除这四个容器
@@ -140,16 +137,62 @@ docker run -d -v mysql:/var/lib/mysql \
 
 docker run -d --network dn --name rds --restart=always redis
 
-docker network inspect dn
-# 修改 app.py
 docker run -d --network dn --name web -v ${PWD}:/usr/src/app --restart=always flask:v4
 
-docker network inspect dn
-# 修改 nginx.conf
 docker run --name ngx --network dn -v ${PWD}/nginx.conf:/etc/nginx/nginx.conf:ro -d -p 80:80 --restart=always nginx
 ```
 
 这是在单机上部署的案例，现在只能访问到 http://127.0.0.1/，数据库、redis、guncorn 都与用户隔离了。
+
+# Problem
+## nginx proxy_pass 待解决
+
+本地浏览器访问发现还是 nginx 默认的首页，按理说应该是自定义的网站首页，后面起一个 alpine 加入网络，在 alpine 上用 `curl http://web:5000` 获取到的内容是 flask 返回的内容，而我本地通过 `curl http://localhost/` 获取到的内容确是 nginx 默认首页，通过 docker logs ngx 也确认了这一事实
+
+```bash
+$ docker logs ngx
+172.20.0.1 - - [08/Dec/2022:03:15:26 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/7.86.0" "-"
+172.20.0.1 - - [08/Dec/2022:03:15:32 +0000] "GET / HTTP/1.1" 200 2127 "-" "curl/7.86.0" "-"
+```
+
+搜索一波以为是设置问题，proxy_pass 为 http://web:5000/ 和 http://web:5000 的区别，现在这样设置可以正常访问，后面突然又不行了。说明这个末尾的斜杠不影响转发地址。
+
+然后是通过浏览器地址栏给出了下一步的方向，发现是 http://127.0.0.1/ 和 http://localhost/ 的区别，前者正常返回 flask 内容，后者返回的却是 nginx 默认页面。在我本机的 host 里面，有这么几条设置（好像有一条设置错误 - hp）
+
+```bash
+$ cat /etc/hosts 
+# Standard host addresses
+127.0.0.1  localhost
+::1        localhost ip6-localhost ip6-loopback
+ff02::1    ip6-allnodes
+ff02::2    ip6-allrouters
+# This host address
+127.0.1.1  hp
+
+$ nslookup 127.0.0.1
+1.0.0.127.in-addr.arpa	name = localhost.
+
+$ nslookup localhost
+Server:		10.6.39.2
+Address:	10.6.39.2#53
+
+Non-authoritative answer:
+Name:	localhost
+Address: 127.0.0.1
+Name:	localhost
+Address: ::1
+```
+
+通过阅读发现，127.0.0.1–127.255.255.255 都是指本地主机，实测 127.0.0.127 和 127.255.255.254 返回的都是 flask 网页，关闭 nginx 容器之后无论是 localhost 还是 127.0.0.1 都没法访问到内容了，也就是说可以确认这两个返回的内容都是来自 nginx，那么就是说 nginx 解析设置存在问题，在 nginx 容器里面返回内容也是不同
+
+```bash
+$ docker stop ngx
+ngx
+$ curl localhost
+curl: (7) Failed to connect to localhost port 80 after 14 ms: Couldn't connect to server
+$ curl 127.0.0.1
+curl: (7) Failed to connect to 127.0.0.1 port 80 after 23 ms: Couldn't connect to server
+```
 
 # References
 
@@ -160,3 +203,8 @@ docker run --name ngx --network dn -v ${PWD}/nginx.conf:/etc/nginx/nginx.conf:ro
 [docker 的入门笔记](https://backmountaindevil.github.io/#/code/app/docker)
 
 [Connect the application to the database](https://docs.docker.com/language/python/develop/)
+
+[Alpine 镜像使用帮助](https://mirrors.tuna.tsinghua.edu.cn/help/alpine/)：然后 apk add curl
+> sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories
+
+[What Is 127.0.0.1 Localhost? February 17, 2022](https://phoenixnap.com/kb/127-0-0-1-localhost)
