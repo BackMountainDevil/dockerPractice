@@ -18,10 +18,21 @@ nginx+redis+mariadb+python
 docker pull mariadb # 拉取 mariadb 最新镜像，现在是 10.10.2
 
 docker network create dn    # 创建网络 dn
+
+# 创建数据卷，你也不想删除容器数据就没有了吧
+docker volume create mysql
+docker volume create mysql_config
+
 # 启动数据库，设置网络、用户名、密码、端口映射
-docker run -d --network dn  --name db --env MARIADB_USER=admin --env MARIADB_PASSWORD=admin --env MARIADB_ROOT_PASSWORD=root -p 3306:3306 mariadb
+docker run -d -v mysql:/var/lib/mysql \
+  -v mysql_config:/etc/mysql -p 3306:3306 \
+  --network dn \
+  --name db \
+  -e MYSQL_ROOT_PASSWORD=root \
+  mariadb
+
 # 连接容器中的数据库，密码 root
-docker exec -it db mariadb  -uroot -p
+docker exec -it db mariadb  -uroot -proot
 MariaDB [(none)]> create database demo;
 Query OK, 1 row affected (0.001 sec)
 
@@ -120,15 +131,12 @@ nginx 配置
 docker rm ngx web rds db -f	# 强制删除这四个容器
 
 # 下面进行重建。不一样的是少了端口设置；多了一个 --restart=always，意思是挂机了会尝试重启
-docker run -d --network dn  --name db --env MARIADB_USER=admin --env MARIADB_PASSWORD=admin --env MARIADB_ROOT_PASSWORD=root --restart=always mariadb
-docker exec -it db mariadb  -uroot -proot
-MariaDB [(none)]> create database demo;
-MariaDB [(none)]> use demo;
-MariaDB [demo]> CREATE TABLE demo.`table` (
-    -> `key` varchar(100) ,
-    -> `value` varchar(100) 
-    -> );
-MariaDB [demo]> \q
+docker run -d -v mysql:/var/lib/mysql \
+  -v mysql_config:/etc/mysql \
+  --network dn \
+  --name db \
+  -e MYSQL_ROOT_PASSWORD=root \
+   --restart=always mariadb
 
 docker run -d --network dn --name rds --restart=always redis
 
@@ -150,3 +158,5 @@ docker run --name ngx --network dn -v ${PWD}/nginx.conf:/etc/nginx/nginx.conf:ro
 [nginx  dockerhub](https://hub.docker.com/_/nginx/)
 
 [docker 的入门笔记](https://backmountaindevil.github.io/#/code/app/docker)
+
+[Connect the application to the database](https://docs.docker.com/language/python/develop/)
