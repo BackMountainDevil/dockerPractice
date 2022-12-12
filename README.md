@@ -144,6 +144,16 @@ docker run --name ngx --network dn -v ${PWD}/nginx.conf:/etc/nginx/nginx.conf:ro
 
 这是在单机上部署的案例，现在只能访问到 http://127.0.0.1/，数据库、redis、guncorn 都与用户隔离了。
 
+## compose
+
+上面要敲四条命令太不优雅了，docker-compose 提供了另一种解决方案
+
+```bash
+docker-compose up -d  # -d 表示后台启动
+docker-compose stop # 暂停项目中所有容器
+```
+
+从启动和暂停看，web都最慢
 # Problem
 ## nginx proxy_pass 待解决
 

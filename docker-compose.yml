@@ -1,0 +1,46 @@
+version: '0.0'
+
+services:
+ web:
+  container_name: web
+  build:
+   context: .
+  volumes:
+  - ./:/usr/src/app 
+  networks:
+  - dn
+
+ db:
+  container_name: db
+  image: mariadb
+  environment:
+  - MYSQL_ROOT_PASSWORD=root
+  volumes:
+  - mysql:/var/lib/mysql
+  - mysql_config:/etc/mysql
+  networks:
+  - dn
+
+ rds:
+  container_name: rds
+  image: redis
+  networks:
+  - dn
+
+ ngx:
+  container_name: ngx
+  image: nginx
+  ports:
+  - 80:80
+  networks:
+  - dn
+  volumes:
+  - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+volumes:
+  mysql:
+  mysql_config:
+
+networks:
+  dn:
+    driver: bridge
